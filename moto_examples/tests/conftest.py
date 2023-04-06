@@ -5,12 +5,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 import boto3
-import moto
 import pytest
-from moto.core import DEFAULT_ACCOUNT_ID
 from moto import mock_dynamodb, mock_s3, mock_ses, mock_sns
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.ses import ses_backends
+from moto.sns import sns_backends
 
-
+AWS_DEFAULT_REGION = 'us-east-1'
 MOCKED_ENV_VARS = {
     'BOOKS_BUCKET': 'books_bucket',
     'BOOKS_TABLE': 'Books',
@@ -28,7 +29,8 @@ class MainFixture():
         self.sns_client = boto3.client('sns')
         self.ses_client = boto3.client('ses')
 
-        self.sns_backend = moto.sns.sns_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+        self.sns_backend = sns_backends[DEFAULT_ACCOUNT_ID][AWS_DEFAULT_REGION]
+        self.ses_backend = ses_backends[DEFAULT_ACCOUNT_ID][AWS_DEFAULT_REGION]
 
     def setup(self) -> ExitStack:
         exit_stack = ExitStack()
@@ -39,19 +41,13 @@ class MainFixture():
         self.new_book_topic_arn  # Ensure new book topic is created
         return exit_stack
 
-    def add_book(self, author, title):
+    def add_book_to_dynamodb(self, author, title):
         self.dynamodb_client.put_item(
             TableName=self.env_vars['BOOKS_TABLE'],
             Item={
-                'Author': {
-                    'S': author,
-                },
-                'Title': {
-                    'S': title,
-                },
-                'Description': {
-                    'S': 'A test description',
-                }
+                'Author': {'S': author},
+                'Title': {'S': title},
+                'Description': {'S': 'A test description'}
             }
         )
 
@@ -78,11 +74,6 @@ class MainFixture():
         os.environ['NEW_BOOK_TOPIC_ARN'] = topic_arn
         return topic_arn
 
-    def s3_upload_file(self, bucket, s3_key: str, file_name=None) -> None:
-        """Upload file on resources/common to s3 - with the same file name by default"""
-        file_name = file_name or s3_key
-        bucket.upload_file(Filename=str(self.data_path/file_name), Key=s3_key)
-
     def verify_email(self) -> None:
         self.ses_client.verify_email_address(EmailAddress=self.env_vars['RECOMMENDATION_SOURCE_EMAIL'])
 
@@ -106,6 +97,10 @@ class MainFixture():
         sns_message_value = sent_notifications[0][1]
         assert expected_message in sns_message_value
 
+    def assert_recommendation_email_sent(self, expected_email_body: str) -> None:
+        email = self.ses_backend.sent_messages[0]
+        assert expected_email_body in email.body
+
 
 @pytest.fixture
 def main_fixture():
@@ -118,4 +113,8 @@ def main_fixture():
 
 
 def set_mocked_aws_credentials():
-    os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
+    os.environ['AWS_DEFAULT_REGION'] = AWS_DEFAULT_REGION
+    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
+    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
+    os.environ['AWS_SESSION_TOKEN'] = 'testing'

@@ -20,15 +20,11 @@ def test_creating_new_book(main_fixture):
     book_manager.create_new_book(book_attributes, main_fixture.data_path/'book_example.pdf')
 
     main_fixture.assert_dynamo_item(author=author, title=title)
-
     main_fixture.assert_s3_object(
-        key='books/George R. R. Martin/A Song of Ice and Fire',
+        key=f'books/{author}/{title}',
         expected_text='This is a book'
     )
-
-    main_fixture.assert_new_book_message_sent(
-        expected_message=f'{title} was just published by {author}'
-    )
+    main_fixture.assert_new_book_message_sent(expected_message=f'{title} was just published by {author}')
 
 
 def test_user_recommendation(main_fixture):
@@ -39,8 +35,13 @@ def test_user_recommendation(main_fixture):
         'title': 'Brave New World',
         'emails': ('awesome_reader@caylent.com', )
     }
-    main_fixture.add_book(author=recommendation['author'], title=recommendation['title'])
+    main_fixture.add_book_to_dynamodb(
+        author=recommendation['author'],
+        title=recommendation['title']
+    )
 
     book_manager = BookManager()
     book_manager.send_user_recommendation(**recommendation)
-    # TODO: Add an assert here
+
+    main_fixture.assert_recommendation_email_sent(f'Your friend {recommendation["user_name"]}')
+    main_fixture.assert_recommendation_email_sent(recommendation["author"])

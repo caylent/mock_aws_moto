@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "mock-aws-python"
 version = "0.1.0"
-description = "Example on how to mock aws services"
+description = "Example of mocking aws services"
 authors = ["Michael Camilo <michael.camilo@caylent.com>"]
 readme = "README.md"
 

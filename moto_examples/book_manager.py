@@ -21,11 +21,8 @@ class BookManager:
     def create_new_book(self, book_attributes: dict, file_path: str) -> None:
         book_attributes['S3Path'] = f'books/{book_attributes["Author"]}/{book_attributes["Title"]}'
         self._create_book_instance(book_attributes)
-
         self.s3_client.upload_file(
-            Bucket=self.books_bucket,
-            Key=book_attributes['S3Path'],
-            Filename=file_path,
+            Bucket=self.books_bucket, Key=book_attributes['S3Path'], Filename=file_path,
         )
         self._broadcast_new_book_message(book_attributes['Author'], book_attributes['Title'])
 
@@ -33,18 +30,10 @@ class BookManager:
         self.dynamodb_client.put_item(
             TableName=self.books_table,
             Item={
-                'Author': {
-                    'S': book_attributes['Author'],
-                },
-                'Title': {
-                    'S': book_attributes['Title'],
-                },
-                'Description': {
-                    'S': book_attributes.get('Description'),
-                },
-                'S3Path': {
-                    'S': book_attributes['S3Path'],
-                },
+                'Author': {'S': book_attributes['Author']},
+                'Title': {'S': book_attributes['Title']},
+                'Description': {'S': book_attributes.get('Description')},
+                'S3Path': {'S': book_attributes['S3Path']},
             }
         )
 
@@ -70,7 +59,8 @@ class BookManager:
                     'Text': {
                         'Data': (
                             f'Your friend {user_name} sends a recommendation: '
-                            f'check {title} from {author}! \n {book_instance["Description"]}'),
+                            f'check {title} from {author}! \n'
+                            f'{book_instance["Description"]["S"]}'),
                     },
                 }
             }
