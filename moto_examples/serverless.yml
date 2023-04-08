@@ -1,0 +1,12 @@
+service: moto-examples
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+
+functions:
+  add_new_book:
+    name: add_new_book
+    module: .
+    handler: new_book_handler.run

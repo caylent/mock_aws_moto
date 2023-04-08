@@ -19,36 +19,31 @@ class BookManager:
         self.ses_client = boto3.client('ses')
 
     def create_new_book(self, book_attributes: dict, file_path: str) -> None:
-        book_attributes['S3Path'] = f'books/{book_attributes["Author"]}/{book_attributes["Title"]}'
+        book_attributes['s3_key'] = f'books/{book_attributes["author"]}/{book_attributes["title"]}'
         self._create_book_instance(book_attributes)
-        self._upload_book(s3_key=book_attributes['S3Path'], file_path=file_path)
-        self.s3_client.upload_file(
-            Bucket=self.books_bucket,
-            Key=book_attributes['S3Path'],
-            Filename=file_path,
-        )
-        self._broadcast_new_book_message(book_attributes['Author'], book_attributes['Title'])
+        self._upload_book(s3_key=book_attributes['s3_key'], file_path=file_path)
+        self._broadcast_new_book_message(book_attributes['author'], book_attributes['title'])
 
     def _create_book_instance(self, book_attributes: dict) -> None:
         self.dynamodb_client.put_item(
             TableName=self.books_table,
             Item={
                 'Author': {
-                    'S': book_attributes['Author'],
+                    'S': book_attributes['author'],
                 },
                 'Title': {
-                    'S': book_attributes['Title'],
+                    'S': book_attributes['title'],
                 },
                 'Description': {
-                    'S': book_attributes.get('Description'),
+                    'S': book_attributes.get('description'),
                 },
-                'S3Path': {
-                    'S': book_attributes['S3Path'],
+                'S3Key': {
+                    'S': book_attributes['s3_key'],
                 },
             }
         )
 
-    def _upload_book(self, s3_key: str, file_path: str) ->:
+    def _upload_book(self, s3_key: str, file_path: str) -> None:
         self.s3_client.upload_file(
             Bucket=self.books_bucket,
             Key=s3_key,
