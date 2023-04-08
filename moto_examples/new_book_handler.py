@@ -17,13 +17,10 @@ class NewBookManager:
         self.books_bucket = os.environ['BOOKS_BUCKET']
         self.books_table = os.environ['BOOKS_TABLE']
         self.new_book_topic_arn = os.environ['NEW_BOOK_TOPIC_ARN']
-        self.recommendation_source_email = os.environ['RECOMMENDATION_SOURCE_EMAIL']
 
         self.dynamodb_client = boto3.client('dynamodb')
         self.s3_client = boto3.client('s3')
         self.sns_client = boto3.client('sns')
-        self.sqs_client = boto3.client('sqs')
-        self.ses_client = boto3.client('ses')
 
     def create_new_book(self, attributes: dict, file_path: str) -> None:
         attributes['s3_key'] = f'books/{attributes["author"]}/{attributes["title"]}'
