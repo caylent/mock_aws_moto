@@ -1,3 +1,4 @@
+from copy import copy
 import os
 from contextlib import ExitStack
 from functools import cached_property
@@ -23,7 +24,7 @@ MOCKED_ENV_VARS = {
 class MainFixture():
     def __init__(self):
         self.data_path = Path(__file__).parent / "resources"
-        self.env_vars = MOCKED_ENV_VARS
+        self.env_vars = copy(MOCKED_ENV_VARS)
         self.dynamodb_client = boto3.client('dynamodb')
         self.s3_client = boto3.client('s3')
         self.sns_client = boto3.client('sns')
@@ -34,11 +35,11 @@ class MainFixture():
 
     def setup(self) -> ExitStack:
         exit_stack = ExitStack()
-        exit_stack.enter_context(patch.dict(os.environ, MOCKED_ENV_VARS))
         self.create_books_table()
         self.create_books_bucket()
         self.verify_email()
         self.new_book_topic_arn  # Ensure new book topic is created
+        exit_stack.enter_context(patch.dict(os.environ, self.env_vars))
         return exit_stack
 
     def add_book_to_dynamodb(self, author, title):
@@ -71,7 +72,7 @@ class MainFixture():
     @cached_property
     def new_book_topic_arn(self) -> str:
         topic_arn = self.sns_client.create_topic(Name=self.env_vars['NEW_BOOK_TOPIC'])['TopicArn']
-        os.environ['NEW_BOOK_TOPIC_ARN'] = topic_arn
+        self.env_vars['NEW_BOOK_TOPIC_ARN'] = topic_arn
         return topic_arn
 
     def verify_email(self) -> None:
