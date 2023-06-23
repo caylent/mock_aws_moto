@@ -1,3 +1,5 @@
+"""Lambda handler and manager class of user's recommendation flow"""
+
 import json
 import os
 from typing import List

@@ -1,3 +1,5 @@
+"""Lambda handler and manager class of new book POST"""
+
 import json
 import os
 
